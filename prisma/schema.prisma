@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Vendor {
+  id                String                 @id @default(cuid())
+  email             String                 @unique
+  name              String?
+  phone             String?
+  businessName      String?
+  status            String                 @default("PENDING") // PENDING, VERIFIED, REJECTED
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  documents         KYCDocument[]
+  marketplaces      MarketplaceConnection[]
+  hiringRequests    HiringRequest[]
+}
+
+model KYCDocument {
+  id        String   @id @default(cuid())
+  type      String   // PAN, AADHAAR, GST, etc.
+  url       String
+  status    String   @default("PENDING") // PENDING, VERIFIED, FAILED
+  reason    String?  // Reason for failure
+  vendorId  String
+  vendor    Vendor   @relation(fields: [vendorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Marketplace {
+  id          String                  @id @default(cuid())
+  name        String
+  category    String                  // Food, Grocery, Hyperlocal, etc.
+  description String
+  logoUrl     String?
+  connections MarketplaceConnection[]
+}
+
+model MarketplaceConnection {
+  id            String      @id @default(cuid())
+  vendorId      String
+  marketplaceId String
+  status        String      @default("PENDING") // PENDING, CONNECTED, DISCONNECTED
+  vendor        Vendor      @relation(fields: [vendorId], references: [id])
+  marketplace   Marketplace @relation(fields: [marketplaceId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([vendorId, marketplaceId])
+}
+
+model DeliveryPartner {
+  id             String          @id @default(cuid())
+  name           String
+  type           String          // Independent, Agency
+  rating         Float           @default(0.0)
+  location       String
+  availability   Boolean         @default(true)
+  hiringRequests HiringRequest[]
+}
+
+model HiringRequest {
+  id        String          @id @default(cuid())
+  vendorId  String
+  partnerId String
+  status    String          @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  vendor    Vendor          @relation(fields: [vendorId], references: [id])
+  partner   DeliveryPartner @relation(fields: [partnerId], references: [id])
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@unique([vendorId, partnerId])
+}
